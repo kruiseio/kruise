@@ -112,17 +112,9 @@ func (r *ControllerFinder) getPodReplicaSet(ref ControllerReference, namespace s
 	if !ok {
 		return nil, nil
 	}
-	replicaSet := &apps.ReplicaSet{}
-	err := r.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: ref.Name}, replicaSet)
+	replicaSet, err := r.getReplicaSet(ref, namespace)
 	if err != nil {
-		// when error is NotFound, it is ok here.
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
 		return nil, err
-	}
-	if ref.UID != "" && replicaSet.UID != ref.UID {
-		return nil, nil
 	}
 	controllerRef := metav1.GetControllerOf(replicaSet)
 	if controllerRef != nil && controllerRef.Kind == controllerKindDep.Kind {
@@ -144,6 +136,28 @@ func (r *ControllerFinder) getPodReplicaSet(ref ControllerReference, namespace s
 			UID:        replicaSet.UID,
 		},
 	}, nil
+}
+
+// getPodReplicaSet finds a replicaset which has no matching deployments.
+func (r *ControllerFinder) getReplicaSet(ref ControllerReference, namespace string) (*apps.ReplicaSet, error) {
+	// This error is irreversible, so there is no need to return error
+	ok, _ := verifyGroupKind(ref, controllerKindRS.Kind, []string{controllerKindRS.Group})
+	if !ok {
+		return nil, nil
+	}
+	replicaSet := &apps.ReplicaSet{}
+	err := r.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: ref.Name}, replicaSet)
+	if err != nil {
+		// when error is NotFound, it is ok here.
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if ref.UID != "" && replicaSet.UID != ref.UID {
+		return nil, nil
+	}
+	return replicaSet, nil
 }
 
 // getPodStatefulSet returns the statefulset referenced by the provided controllerRef.
