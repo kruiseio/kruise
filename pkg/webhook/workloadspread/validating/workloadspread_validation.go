@@ -153,6 +153,7 @@ func validateWorkloadSpreadSpec(obj *appsv1alpha1.WorkloadSpread, fldPath *field
 
 func validateWorkloadSpreadSubsetPatch(patch runtime.RawExtension, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
+
 	if patch.Raw == nil {
 		return allErrs
 	}
@@ -175,13 +176,19 @@ func validateWorkloadSpreadSubsetPatch(patch runtime.RawExtension, fldPath *fiel
 
 	for _, container := range obj.Spec.InitContainers {
 		if container.Image != "" {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("patch"), patch, fmt.Sprintf("patch the image of initcontainer[%s] is not permitted", container.Name)))
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("patch"), patch, fmt.Sprintf("patch the image of initContainer[%s] is not permitted", container.Name)))
+		}
+		if container.VolumeMounts != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("patch"), patch, fmt.Sprintf("patch the volumeMounts of initContainer[%s] is not permitted", container.Name)))
 		}
 	}
 
 	for _, container := range obj.Spec.Containers {
 		if container.Image != "" {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("patch"), patch, fmt.Sprintf("patch the image of container[%s] is not permitted", container.Name)))
+		}
+		if container.VolumeMounts != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("patch"), patch, fmt.Sprintf("patch the volumeMounts of container[%s] is not permitted", container.Name)))
 		}
 	}
 
